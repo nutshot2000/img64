@@ -646,7 +646,7 @@ export default function Home() {
         {/* Support Button */}
         <div className="mt-3">
           <a
-            href="https://ko-fi.com/YOUR_KOFI_ID"
+            href="https://ko-fi.com/nutshot2000"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#29abe0] text-white rounded-lg hover:bg-[#1d8bbd] transition-colors font-medium"
