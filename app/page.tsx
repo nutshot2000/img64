@@ -14,7 +14,12 @@ interface ImageResult {
   width: number
   height: number
   compressed: boolean
+  timestamp: number
 }
+
+// localStorage key for history
+const HISTORY_KEY = 'img64_history'
+const MAX_HISTORY = 20
 
 export default function Home() {
   const [isDragging, setIsDragging] = useState(false)
@@ -26,7 +31,46 @@ export default function Home() {
   const [darkMode, setDarkMode] = useState(false)
   const [compressImages, setCompressImages] = useState(true)
   const [compressionQuality, setCompressionQuality] = useState(80)
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<ImageResult[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load history from localStorage
+  const loadHistory = useCallback(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  }, [])
+
+  // Save to history
+  const saveToHistory = useCallback((result: ImageResult) => {
+    if (typeof window === 'undefined') return
+    try {
+      const hist = loadHistory()
+      const newHistory = [result, ...hist].slice(0, MAX_HISTORY)
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory))
+    } catch {
+      // Ignore storage errors
+    }
+  }, [loadHistory])
+
+  // Clear history
+  const clearHistory = useCallback(() => {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(HISTORY_KEY)
+    showToastMessage('History cleared!')
+  }, [])
+
+  // Load history when panel opens
+  useEffect(() => {
+    if (showHistory) {
+      setHistory(loadHistory())
+    }
+  }, [showHistory, loadHistory])
 
   // Check for dark mode preference
   useEffect(() => {
@@ -99,9 +143,12 @@ export default function Home() {
             width: img.width,
             height: img.height,
             compressed: wasCompressed,
+            timestamp: Date.now(),
           }
           setResults(prev => [newResult, ...prev])
           setSelectedId(newResult.id)
+          // Save to history
+          saveToHistory(newResult)
         }
         img.src = dataUri
       }
@@ -216,6 +263,11 @@ export default function Home() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const clearAllWithHistory = () => {
+    clearAll()
+    clearHistory()
+  }
+
   const selected = results.find(r => r.id === selectedId)
 
   const bgClass = darkMode ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gradient-to-br from-slate-50 to-slate-100'
@@ -247,8 +299,78 @@ export default function Home() {
           >
             {darkMode ? '☀️' : '🌙'}
           </button>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={`absolute top-4 right-16 p-2 rounded-lg transition-colors ${showHistory ? 'bg-blue-500 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            aria-label="Toggle history"
+          >
+            📜
+          </button>
         </div>
       </header>
+
+      {/* History Sidebar */}
+      {showHistory && (
+        <div className={`fixed inset-y-0 right-0 w-80 ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-xl z-40 transform transition-transform duration-300 overflow-y-auto`}>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-lg font-semibold ${textClass}`}>Conversion History</h2>
+              <button
+                onClick={() => setShowHistory(false)}
+                className={`p-1 rounded ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+              >
+                ✕
+              </button>
+            </div>
+            {(() => {
+              if (history.length === 0) {
+                return (
+                  <p className={`text-sm ${textMutedClass} text-center py-8`}>
+                    No conversion history yet.<br/>Your conversions will appear here.
+                  </p>
+                )
+              }
+              return (
+                <>
+                  <button
+                    onClick={() => {
+                      clearHistory()
+                      setHistory([])
+                    }}
+                    className="text-sm text-red-500 hover:text-red-600 mb-4"
+                  >
+                    Clear History
+                  </button>
+                  <div className="space-y-2">
+                    {history.map((item: ImageResult) => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setResults(prev => {
+                            if (prev.find(r => r.id === item.id)) return prev
+                            return [item, ...prev]
+                          })
+                          setSelectedId(item.id)
+                          setShowHistory(false)
+                        }}
+                        className={`p-2 rounded-lg cursor-pointer ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+                      >
+                        <div className="flex gap-2">
+                          <img src={item.dataUri} alt={item.fileName} className="w-10 h-10 object-contain rounded" />
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${textClass}`}>{item.fileName}</p>
+                            <p className={`text-xs ${textMutedClass}`}>{formatBytes(item.fileSize)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 pb-12">
@@ -341,7 +463,7 @@ export default function Home() {
                 )}
               </div>
               <button
-                onClick={clearAll}
+                onClick={clearAllWithHistory}
                 className="px-3 py-1 text-sm text-red-500 hover:text-red-600 font-medium transition-colors"
               >
                 Clear All
@@ -520,7 +642,23 @@ export default function Home() {
       {/* Footer */}
       <footer className={`py-8 text-center text-sm ${textMutedClass}`}>
         <p>Free & open source. No tracking, no ads, no BS.</p>
-        <p className="mt-1">
+        
+        {/* Support Button */}
+        <div className="mt-3">
+          <a
+            href="https://ko-fi.com/YOUR_KOFI_ID"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#29abe0] text-white rounded-lg hover:bg-[#1d8bbd] transition-colors font-medium"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.881 4.115c-.81 0-1.592-.172-2.305-.509l-1.042.949c.897.579 1.552 1.502 1.768 2.636l1.042-.949c.198-.385.537-.696.942-.869l-.761-.694c-.428.183-.779.509-.977.907l.763.695.003-.002.008-.007.03-.027.113-.098.387-.334.924-.798c.303-.261.688-.393 1.088-.347l-.918-.838c-.552-.063-1.082.147-1.456.567l-.652.595c-.13.118-.284.203-.449.247l.653-.592c-.274-.073-.502-.258-.618-.5l.652-.595c-.201-.418-.153-.917.132-1.305l-1.042-.949c-.413.38-.673.942-.673 1.548 0 .19.028.375.079.551l1.042-.949c-.084-.282-.084-.584 0-.866l-.761-.694c-.167.232-.262.505-.262.794 0 .192.034.378.097.553l.761-.694c-.107-.297-.107-.62 0-.917l-1.042-.949c-.21.326-.314.717-.285 1.116l1.042-.949c-.044-.166-.066-.337-.066-.51 0-.879.502-1.648 1.227-2.038l-.761-.694c-.481.259-.852.708-1.014 1.258l.762-.695c-.016-.017-.033-.033-.048-.05l-.652.595c.28.343.426.787.386 1.243l.652-.595c.07-.12.164-.217.272-.285l-.761-.694c.176.111.331.261.453.442l.761-.694c-.13-.19-.188-.421-.158-.656l-.761.694c.04.21.04.425 0 .635l.761-.694c-.073-.174-.073-.367 0-.541l-1.042.949c.152.134.278.296.37.477l1.042-.949c-.134-.263-.134-.566 0-.829l-.761-.694z"/>
+            </svg>
+            Support this tool
+          </a>
+        </div>
+        
+        <p className="mt-3">
           <a href="https://github.com/nutshot2000/-Image-to-Base64-Converter" target="_blank" rel="noopener" className="hover:text-blue-500 transition-colors">
             View on GitHub →
           </a>
