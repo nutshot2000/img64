@@ -817,6 +817,41 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* Share Section */}
+        <div className={`mt-8 rounded-xl p-6 text-center ${cardClass}`}>
+          <h2 className={`font-semibold ${textClass} mb-3`}>Love this tool? Share it!</h2>
+          <div className="flex justify-center gap-4">
+            <a href={shareTwitter('https://img64.dev', 'Convert images to Base64 instantly & for free. No upload needed! 🚀')} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#1DA1F2] text-white rounded-lg font-medium hover:bg-opacity-90 transition-colors">Share on X</a>
+            <a href={shareReddit('https://img64.dev', 'Free Image to Base64 Converter - Instant, Local & No Uploads')} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#FF4500] text-white rounded-lg font-medium hover:bg-opacity-90 transition-colors">Share on Reddit</a>
+          </div>
+        </div>
+
+        {/* SEO Article / FAQ */}
+        <article className={`mt-12 rounded-xl p-8 ${cardClass}`}>
+          <h2 className={`text-2xl font-bold ${textClass} mb-6`}>What is Base64 Image Encoding?</h2>
+          <div className={`space-y-6 flex flex-col ${textMutedClass} leading-relaxed`}>
+            <section>
+              <h3 className={`text-xl font-semibold ${textClass} mb-2`}>How does it work?</h3>
+              <p>Base64 is an encoding algorithm that transforms any binary data, including images, into text format containing only readable ASCII characters. When you convert an image to Base64 (creating a Data URI), you can embed the image directly into HTML, CSS, or JSON without relying on external file requests.</p>
+            </section>
+            
+            <section>
+              <h3 className={`text-xl font-semibold ${textClass} mb-2`}>Why convert images to Base64 strings?</h3>
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Fewer HTTP Requests:</strong> Embedding images directly in your code removes the need to download separate image files, which can speed up page loading times for small icons and assets.</li>
+                <li><strong>Offline Availability:</strong> If you embed images using Data URIs in your HTML or CSS, the assets don&apos;t require a network connection to display.</li>
+                <li><strong>Streamlined Emails:</strong> HTML emails often block external images. Base64 encoding helps bypass this for lightweight elements like signatures and logos.</li>
+                <li><strong>API Portability:</strong> Many REST APIs only accept JSON text. Encoding images to Base64 allows you to send images as simple JSON string payloads.</li>
+              </ul>
+            </section>
+            
+            <section>
+              <h3 className={`text-xl font-semibold ${textClass} mb-2`}>Is this image converter secure?</h3>
+              <p>Yes! Our <strong>Image to Base64 Converter</strong> operates completely locally within your web browser. When you drag and drop a file, it never leaves your device. No images are uploaded to any server, guaranteeing 100% privacy and lightning-fast instantaneous conversions.</p>
+            </section>
+          </div>
+        </article>
       </div>
 
       {/* Footer */}

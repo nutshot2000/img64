@@ -35,32 +35,64 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'WebApplication',
-    name: 'Image to Base64 Converter',
-    description: 'Convert images to Base64 instantly with auto-compression. 100% private, works offline. Free online Base64 image encoder.',
-    url: 'https://img64.dev',
-    applicationCategory: 'UtilityApplication',
-    operatingSystem: 'Any',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Image to Base64 Converter',
+      description: 'Convert images to Base64 instantly with auto-compression. 100% private, works offline. Free online Base64 image encoder.',
+      url: 'https://img64.dev',
+      applicationCategory: 'UtilityApplication',
+      operatingSystem: 'Any',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      featureList: [
+        'Convert images to Base64',
+        'Auto-compress images',
+        'Drag and drop support',
+        'Paste from clipboard',
+        'Multiple output formats',
+        'Works offline',
+        'No server upload',
+        'Data URI generator',
+        'CSS background image encoder',
+        'HTML img tag generator',
+      ],
     },
-    featureList: [
-      'Convert images to Base64',
-      'Auto-compress images',
-      'Drag and drop support',
-      'Paste from clipboard',
-      'Multiple output formats',
-      'Works offline',
-      'No server upload',
-      'Data URI generator',
-      'CSS background image encoder',
-      'HTML img tag generator',
-    ],
-  }
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'How does it work?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Base64 is an encoding algorithm that transforms any binary data, including images, into text format containing only readable ASCII characters. When you convert an image to Base64 (creating a Data URI), you can embed the image directly into HTML, CSS, or JSON without relying on external file requests.'
+          }
+        },
+        {
+          '@type': 'Question',
+          name: 'Why convert images to Base64 strings?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'It reduces HTTP requests, enables offline availability, streamlines HTML emails, and works seamlessly with JSON APIs.'
+          }
+        },
+        {
+          '@type': 'Question',
+          name: 'Is this image converter secure?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes! Our Image to Base64 Converter operates completely locally within your web browser. No images are uploaded to any server, guaranteeing 100% privacy.'
+          }
+        }
+      ]
+    }
+  ]
 
   return (
     <html lang="en">
