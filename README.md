@@ -1,63 +1,107 @@
-# Image to Base64 Converter
+# img64.dev - Image to Base64 Converter
 
-**Live Demo: [img64.dev](https://img64.dev)**
+🚀 **Live Demo: [img64.dev](https://img64.dev)**
 
-A simple, fast, and private image to Base64 converter built with Next.js.
+The fastest, most private way to convert images to Base64. No uploads, no limits, works offline.
 
-## Features
+![img64.dev Screenshot](public/og-image.png)
 
-- 🖱️ Drag & drop, click, or paste from clipboard
-- ⚡ Instant conversion (client-side, no upload)
-- 🔒 100% private (nothing leaves your browser)
-- 📱 Mobile-friendly responsive design
-- 🚀 Works offline
+## ✨ Why img64?
 
-## Getting Started
+- 🔒 **100% Private** - Nothing ever leaves your browser
+- ⚡ **Instant** - Zero latency, client-side conversion
+- 📱 **Works Offline** - No server required
+- 🎨 **Multiple Formats** - Data URI, CSS, HTML `<img>`, JSON
+- 🗜️ **Auto-Compress** - Built-in image optimization
+- 🖱️ **Drag, Drop, Paste** - Or click to browse
+- 🌙 **Dark Mode** - Easy on the eyes
 
-### Install dependencies
+## 🚀 Quick Start
+
+### Online (No Install)
+Just visit **[img64.dev](https://img64.dev)** and start converting!
+
+### Local Development
 
 ```bash
+# Clone the repo
+git clone https://github.com/nutshot2000/img64.git
+cd img64
+
+# Install dependencies
 npm install
-```
 
-### Run development server
-
-```bash
+# Run dev server
 npm run dev
+
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
-
-### Build for production
+### Build for Production
 
 ```bash
 npm run build
 ```
 
-The static export will be in the `out` folder.
+Static files will be in the `out/` folder.
 
-## Deployment
+## 🛠️ Tech Stack
 
-### Vercel (recommended)
+- **Next.js 14** - React framework
+- **TypeScript** - Type-safe code
+- **Tailwind CSS** - Styling
+- **browser-image-compression** - Client-side optimization
+- **NextAuth.js** - Authentication
+- **Prisma + PostgreSQL** - Database (for Pro features)
 
-```bash
-npx vercel
-```
+## 📸 Screenshots
 
-### Netlify
+### Main Interface
+Drag and drop images anywhere on the page:
 
-1. Run `npm run build`
-2. Deploy the `out` folder
+![Drop Zone](screenshots/drop-zone.png)
 
-### GitHub Pages
+### Multiple Output Formats
+Choose between Data URI, Base64, CSS, HTML, or JSON:
 
-1. Push to GitHub
-2. Enable GitHub Pages in repo settings
-3. Set source to the `out` folder
+![Output Formats](screenshots/formats.png)
 
-## Tech Stack
+### Dark Mode
+Easy on the eyes:
 
-- Next.js 14
-- React 18
-- TypeScript
-- Tailwind CSS
+![Dark Mode](screenshots/dark-mode.png)
+
+## 🎯 Use Cases
+
+- **Email Signatures** - Embed images directly
+- **CSS Backgrounds** - `background-image: url(data:image/png;base64,...)`
+- **API Payloads** - Send images as Base64 strings
+- **Data URIs** - Self-contained HTML images
+- **Icon Fonts** - Inline SVG icons
+- **Prototyping** - Quick inline assets
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file
+
+## 💖 Support
+
+If img64 helps you, consider [buying me a coffee](https://ko-fi.com/nutshot2000)!
+
+## 🔗 Links
+
+- **Live Site:** [img64.dev](https://img64.dev)
+- **Twitter/X:** [@nutshot2000](https://twitter.com/nutshot2000)
+- **Issues:** [GitHub Issues](https://github.com/nutshot2000/img64/issues)
+
+---
+
+Made with ❤️ by [nutshot2000](https://github.com/nutshot2000)

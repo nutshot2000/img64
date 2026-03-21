@@ -1,7 +1,15 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import imageCompression from 'browser-image-compression'
+import { UsageTracker } from '@/components/UsageTracker'
+import { ProBadge, ProFeature } from '@/components/ProBadge'
+import { getUsage, incrementUsage, hasReachedLimit, FREE_DAILY_LIMIT } from '@/lib/usage'
+
+// Social share URLs
+const shareTwitter = (url: string, text: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+const shareReddit = (url: string, title: string) => `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`
 
 interface ImageResult {
   id: string
@@ -22,6 +30,7 @@ const HISTORY_KEY = 'img64_history'
 const MAX_HISTORY = 20
 
 export default function Home() {
+  const { data: session, status } = useSession()
   const [isDragging, setIsDragging] = useState(false)
   const [results, setResults] = useState<ImageResult[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -33,7 +42,22 @@ export default function Home() {
   const [compressionQuality, setCompressionQuality] = useState(80)
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState<ImageResult[]>([])
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [conversionCount, setConversionCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const batchFileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load conversion count from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const count = localStorage.getItem('img64_conversion_count')
+      if (count) setConversionCount(parseInt(count, 10))
+    }
+  }, [])
+
+  const isPro = session?.user?.isPro || false
+  const isAuthenticated = status === 'authenticated'
 
   // Load history from localStorage
   const loadHistory = useCallback(() => {
@@ -96,11 +120,14 @@ export default function Home() {
     // Skip SVG and GIF (compression doesn't work well)
     if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file
     
+    // Pro users get higher quality compression (90-100%)
+    const quality = isPro ? Math.max(compressionQuality, 90) : compressionQuality
+    
     const options = {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 4096,
+      maxSizeMB: isPro ? 5 : 1, // Pro users get larger file support
+      maxWidthOrHeight: isPro ? 8192 : 4096, // Pro users get higher resolution
       useWebWorker: true,
-      initialQuality: compressionQuality / 100,
+      initialQuality: quality / 100,
     }
     
     try {
@@ -111,11 +138,32 @@ export default function Home() {
     }
   }
 
-  const handleFiles = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'))
+  const checkAndIncrementUsage = (fileCount: number): boolean => {
+    if (isPro) return true
+    
+    const currentUsage = getUsage().count
+    if (currentUsage + fileCount > FREE_DAILY_LIMIT) {
+      setShowLimitModal(true)
+      return false
+    }
+    
+    // Increment usage for each file
+    for (let i = 0; i < fileCount; i++) {
+      incrementUsage()
+    }
+    return true
+  }
+
+  const processFiles = async (files: File[]) => {
+    const fileArray = files.filter(f => f.type.startsWith('image/'))
     
     if (fileArray.length === 0) {
       showToastMessage('Please select image files')
+      return
+    }
+
+    // Check usage limit
+    if (!checkAndIncrementUsage(fileArray.length)) {
       return
     }
 
@@ -149,6 +197,12 @@ export default function Home() {
           setSelectedId(newResult.id)
           // Save to history
           saveToHistory(newResult)
+          // Track conversion
+          trackConversion(newResult)
+          // Increment counter
+          const newCount = conversionCount + 1
+          setConversionCount(newCount)
+          localStorage.setItem('img64_conversion_count', newCount.toString())
         }
         img.src = dataUri
       }
@@ -157,7 +211,12 @@ export default function Home() {
 
     const savedMsg = compressImages ? ' (optimized)' : ''
     showToastMessage(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} converted${savedMsg}`)
-  }, [compressImages, compressionQuality])
+  }
+
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files)
+    await processFiles(fileArray)
+  }, [compressImages, compressionQuality, isPro])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -178,6 +237,12 @@ export default function Home() {
   }, [])
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files)
+    }
+  }, [handleFiles])
+
+  const handleBatchFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFiles(e.target.files)
     }
@@ -207,6 +272,30 @@ export default function Home() {
     setShowToast(true)
     setTimeout(() => setShowToast(false), 3000)
   }
+
+  // GA4 Event Tracking
+  const trackEvent = useCallback((eventName: string, params?: Record<string, any>) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('event', eventName, params)
+    }
+  }, [])
+
+  // Track image dropped
+  useEffect(() => {
+    if (isDragging) {
+      trackEvent('image_drag_start')
+    }
+  }, [isDragging, trackEvent])
+
+  // Track conversions
+  const trackConversion = useCallback((result: ImageResult) => {
+    trackEvent('image_converted', {
+      file_type: result.mimeType,
+      file_size: result.fileSize,
+      compressed: result.compressed,
+      is_pro: isPro
+    })
+  }, [trackEvent, isPro])
 
   const getCopyText = (result: ImageResult): string => {
     switch (copyFormat) {
@@ -279,33 +368,69 @@ export default function Home() {
     <main className={`min-h-screen ${bgClass} transition-colors duration-300`}>
       {/* Header */}
       <header className="py-8 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="text-center flex-1">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h1 className={`text-3xl font-bold ${textClass}`}>Image to Base64</h1>
+                {isPro && <ProBadge />}
+              </div>
+              <p className={textMutedClass}>Instant, private conversion. Drag, drop, paste, or click.</p>
+              <p className={`text-xs ${textMutedClass} mt-1 flex items-center justify-center gap-2`}>
+                <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">V</kbd> to paste from clipboard
+              </p>
             </div>
-            <h1 className={`text-3xl font-bold ${textClass}`}>Image to Base64</h1>
+            
+            {/* Auth Buttons */}
+            <div className="flex items-center gap-2">
+              {isAuthenticated ? (
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={session.user?.image || ''} 
+                    alt={session.user?.name || ''} 
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <button
+                    onClick={() => signOut()}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => signIn('google')}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                >
+                  Sign in
+                </button>
+              )}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? '☀️' : '🌙'}
+              </button>
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className={`p-2 rounded-lg transition-colors ${showHistory ? 'bg-blue-500 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                aria-label="Toggle history"
+              >
+                📜
+              </button>
+            </div>
           </div>
-          <p className={textMutedClass}>Instant, private conversion. Drag, drop, paste, or click.</p>
-          <p className={`text-xs ${textMutedClass} mt-1 flex items-center justify-center gap-2`}>
-            <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">V</kbd> to paste from clipboard
-          </p>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? '☀️' : '🌙'}
-          </button>
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className={`absolute top-4 right-16 p-2 rounded-lg transition-colors ${showHistory ? 'bg-blue-500 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-            aria-label="Toggle history"
-          >
-            📜
-          </button>
+          
+          {/* Usage Tracker */}
+          <div className="mt-4 max-w-md mx-auto">
+            <UsageTracker isPro={isPro} />
+          </div>
         </div>
       </header>
 
@@ -414,6 +539,51 @@ export default function Home() {
           />
         </div>
 
+        {/* Batch Upload - Pro Feature */}
+        <div className={`mt-4 p-4 rounded-xl ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          {isPro ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ProBadge />
+                <span className={textClass}>
+                  <span className="font-medium">Batch Upload</span>
+                  <span className={`block text-xs ${textMutedClass}`}>Upload multiple files at once</span>
+                </span>
+              </div>
+              <button
+                onClick={() => batchFileInputRef.current?.click()}
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-colors"
+              >
+                Select Multiple Files
+              </button>
+              <input
+                ref={batchFileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleBatchFileChange}
+                className="hidden"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between opacity-75">
+              <div className="flex items-center gap-3">
+                <ProBadge />
+                <span className={textClass}>
+                  <span className="font-medium">Batch Upload</span>
+                  <span className={`block text-xs ${textMutedClass}`}>Upload multiple files at once</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="px-4 py-2 bg-slate-300 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg font-medium cursor-not-allowed"
+              >
+                Pro Only
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Compression Settings */}
         <div className={`mt-4 p-4 rounded-xl ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -434,13 +604,16 @@ export default function Home() {
                 <span className={`text-sm ${textMutedClass}`}>Quality:</span>
                 <input
                   type="range"
-                  min="50"
+                  min={isPro ? "90" : "50"}
                   max="100"
                   value={compressionQuality}
                   onChange={(e) => setCompressionQuality(Number(e.target.value))}
                   className="w-24 accent-blue-500"
                 />
                 <span className={`text-sm font-mono ${textClass} w-10`}>{compressionQuality}%</span>
+                {!isPro && compressionQuality > 80 && (
+                  <span className="text-xs text-amber-500">Pro: 90-100%</span>
+                )}
               </div>
             )}
           </div>
@@ -449,7 +622,14 @@ export default function Home() {
         {/* Results */}
         {results.length > 0 && (
           <div className="mt-8 fade-in">
-            {/* Toolbar */}
+            {/* Conversion Counter */}
+            {conversionCount > 0 && (
+              <div className={`text-center py-2 mb-4 rounded-lg ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                <span className={`text-sm ${textMutedClass}`}>🎉 </span>
+                <span className={`font-bold text-blue-500`}>{conversionCount.toLocaleString()}</span>
+                <span className={`text-sm ${textMutedClass}`}> conversions on img64.dev</span>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 <span className={textMutedClass}>{results.length} result{results.length > 1 ? 's' : ''}</span>
@@ -663,6 +843,7 @@ export default function Home() {
         <nav className="mt-4 flex flex-wrap justify-center gap-4">
           <a href="/about" className="hover:text-blue-500 transition-colors">About</a>
           <a href="/contact" className="hover:text-blue-500 transition-colors">Contact</a>
+          <a href="/pricing" className="hover:text-blue-500 transition-colors font-semibold text-amber-500">Pricing</a>
           <a href="/privacy" className="hover:text-blue-500 transition-colors">Privacy Policy</a>
           <a href="/terms" className="hover:text-blue-500 transition-colors">Terms of Service</a>
         </nav>
@@ -673,6 +854,67 @@ export default function Home() {
       {showToast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm font-medium shadow-lg z-50 animate-bounce ${darkMode ? 'bg-slate-100 text-slate-800' : 'bg-slate-800 text-white'}`}>
           {toastMessage}
+        </div>
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`max-w-md w-full rounded-2xl p-6 ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-2xl`}>
+            <div className="text-center">
+              <ProBadge className="mb-4 text-lg px-4 py-2" />
+              <h2 className={`text-2xl font-bold ${textClass} mb-2`}>Upgrade to Pro</h2>
+              <p className={`${textMutedClass} mb-6`}>
+                Get unlimited conversions, batch uploads, high-quality compression, and more!
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className={`px-4 py-2 rounded-lg font-medium ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                >
+                  Maybe Later
+                </button>
+                <a
+                  href="/pricing"
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-colors"
+                >
+                  View Pricing
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Limit Reached Modal */}
+      {showLimitModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`max-w-md w-full rounded-2xl p-6 ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-2xl`}>
+            <div className="text-center">
+              <div className="text-4xl mb-4">⏰</div>
+              <h2 className={`text-2xl font-bold ${textClass} mb-2`}>Daily Limit Reached</h2>
+              <p className={`${textMutedClass} mb-2`}>
+                You've used all {FREE_DAILY_LIMIT} free conversions for today.
+              </p>
+              <p className={`${textMutedClass} mb-6`}>
+                Upgrade to Pro for unlimited conversions!
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => setShowLimitModal(false)}
+                  className={`px-4 py-2 rounded-lg font-medium ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                >
+                  Come Back Tomorrow
+                </button>
+                <a
+                  href="/pricing"
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-colors"
+                >
+                  Upgrade to Pro
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
