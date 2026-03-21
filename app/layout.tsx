@@ -3,6 +3,7 @@ import { AuthProvider } from '@/components/AuthProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://img64.dev'),
   title: 'Image to Base64 Converter — Free & Instant | No Upload',
   description: 'Convert images to Base64 instantly. Drag, drop, or paste. 100% private — no uploads, works offline. Free online Base64 image encoder with auto-compression.',
   keywords: 'image to base64, base64 encoder, image encoder, convert image to base64, base64 image, data uri, base64 converter, image to data uri, online base64 tool, base64 image converter, png to base64, jpg to base64, image to data url, base64 string generator, encode image to base64, base64 image optimizer, compress image to base64, image compression tool, online image encoder, free base64 converter, webp to base64, gif to base64, svg to base64, base64 generator, image to code, image encoder online, client-side image converter',
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Image to Base64 Converter — Free & Instant',
     description: 'Convert images to Base64 instantly. 100% private, works offline.',
+    images: ['https://img64.dev/og-image.png'],
   },
   robots: {
     index: true,
