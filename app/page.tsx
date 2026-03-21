@@ -822,8 +822,8 @@ export default function Home() {
         <div className={`mt-8 rounded-xl p-6 text-center ${cardClass}`}>
           <h2 className={`font-semibold ${textClass} mb-3`}>Love this tool? Share it!</h2>
           <div className="flex justify-center gap-4">
-            <a href={shareTwitter('https://img64.dev', 'Convert images to Base64 instantly & for free. No upload needed! 🚀')} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#1DA1F2] text-white rounded-lg font-medium hover:bg-opacity-90 transition-colors">Share on X</a>
-            <a href={shareReddit('https://img64.dev', 'Free Image to Base64 Converter - Instant, Local & No Uploads')} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#FF4500] text-white rounded-lg font-medium hover:bg-opacity-90 transition-colors">Share on Reddit</a>
+            <a href={shareTwitter('https://img64.dev/?v=1', 'Convert images to Base64 instantly & for free. No upload needed! 🚀')} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#1DA1F2] text-white rounded-lg font-medium hover:bg-opacity-90 transition-colors">Share on X</a>
+            <a href={shareReddit('https://img64.dev/?v=1', 'Free Image to Base64 Converter - Instant, Local & No Uploads')} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#FF4500] text-white rounded-lg font-medium hover:bg-opacity-90 transition-colors">Share on Reddit</a>
           </div>
         </div>
 
