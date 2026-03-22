@@ -313,6 +313,8 @@ export default function Home() {
               >
                 ☕ <span className="hidden sm:inline">Support</span>
               </a>
+              {/* Auth hidden for growth phase - keeping logic for later tier launch */}
+              {/* 
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
                   <img src={session.user?.image || ''} alt={session.user?.name || ''} className="w-8 h-8 rounded-full ring-2 ring-violet-500/30" />
@@ -326,6 +328,7 @@ export default function Home() {
                   Sign in
                 </button>
               )}
+              */}
             </div>
           </div>
         </header>
