@@ -128,10 +128,7 @@ export default function Home() {
   }
 
   const checkAndIncrementUsage = (fileCount: number): boolean => {
-    if (isPro) return true
-    const currentUsage = getUsage().count
-    if (currentUsage + fileCount > FREE_DAILY_LIMIT) { setShowLimitModal(true); return false }
-    for (let i = 0; i < fileCount; i++) incrementUsage()
+    // Limits disabled for now to grow user base
     return true
   }
 
@@ -354,13 +351,8 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Usage tracker */}
-          <div className="mt-5 max-w-sm mx-auto">
-            <UsageTracker isPro={isPro} />
-          </div>
+          {/* ── Main content ─────────────────────────────────────── */}
         </section>
-
-        {/* ── Main content ─────────────────────────────────────── */}
         <main className="max-w-5xl mx-auto px-6 pb-20">
 
           {/* Drop Zone */}
