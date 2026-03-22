@@ -278,17 +278,19 @@ export default function Home() {
         <header className="py-6 px-6">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <a href="/" className="relative group">
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 opacity-20 blur-md group-hover:opacity-40 transition-opacity" />
+            <div className="flex items-center gap-4">
+              <a href="/" className="relative group flex-shrink-0">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 opacity-20 blur-xl group-hover:opacity-40 transition-opacity" />
                 <img 
                   src="/logo.png" 
                   alt="img64 logo" 
-                  className="relative w-10 h-10 rounded-xl object-contain"
+                  className="relative w-20 sm:w-24 h-auto rounded-xl object-contain shadow-2xl"
                 />
               </a>
-              <span className="text-xl font-bold gradient-text tracking-tight">img64</span>
-              {isPro && <ProBadge />}
+              <div className="flex flex-col -ml-2">
+                <span className="text-xl sm:text-2xl font-bold gradient-text tracking-tighter">img64</span>
+                {isPro && <ProBadge className="mt-1" />}
+              </div>
             </div>
 
             {/* Nav actions */}
