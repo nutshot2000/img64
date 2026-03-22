@@ -1,6 +1,7 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import GitHubProvider from 'next-auth/providers/github'
+import CredentialsProvider from 'next-auth/providers/credentials'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,14 +17,22 @@ export const authOptions: NextAuthOptions = {
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
       })
     ] : []),
+    // Add a dummy credentials provider so the session endpoint works without OAuth keys
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize() { return null }
+    })
   ],
+  secret: process.env.NEXTAUTH_SECRET || 'temp-secret-key-for-mvp',
   callbacks: {
     async session({ session, token }) {
-      if (session.user) {
+      if (session && session.user && token) {
         session.user.id = token.sub!
-        // For MVP, we'll check subscription status from Stripe directly
-        // or use a simple in-memory store
-        session.user.isPro = false // Will be populated from Stripe
+        session.user.isPro = false
         session.user.subscriptionStatus = null
       }
       return session
