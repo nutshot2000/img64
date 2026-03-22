@@ -11,6 +11,13 @@ import { getUsage, incrementUsage, hasReachedLimit, FREE_DAILY_LIMIT } from '@/l
 const shareTwitter = (url: string, text: string) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
 const shareReddit = (url: string, title: string) => `https://reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`
 
+// Fire confetti on first conversion
+async function fireConfetti() {
+  const confetti = (await import('canvas-confetti')).default
+  confetti({ colors: ['#8b5cf6', '#22d3ee', '#ffffff', '#c4b5fd'], particleCount: 100, spread: 70, origin: { y: 0.6 } })
+  setTimeout(() => confetti({ colors: ['#8b5cf6', '#22d3ee'], particleCount: 50, spread: 100, origin: { y: 0.7 } }), 300)
+}
+
 interface ImageResult {
   id: string
   dataUri: string
@@ -43,13 +50,26 @@ export default function Home() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [conversionCount, setConversionCount] = useState(0)
+  const [displayCount, setDisplayCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const batchFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const count = localStorage.getItem('img64_conversion_count')
-      if (count) setConversionCount(parseInt(count, 10))
+      if (count) {
+        const target = parseInt(count, 10)
+        setConversionCount(target)
+        // Animate counter from 0 to target
+        let current = 0
+        const step = Math.ceil(target / 60)
+        const timer = setInterval(() => {
+          current = Math.min(current + step, target)
+          setDisplayCount(current)
+          if (current >= target) clearInterval(timer)
+        }, 16)
+        return () => clearInterval(timer)
+      }
     }
   }, [])
 
@@ -143,7 +163,10 @@ export default function Home() {
           trackConversion(newResult)
           const newCount = conversionCount + 1
           setConversionCount(newCount)
+          setDisplayCount(newCount)
           localStorage.setItem('img64_conversion_count', newCount.toString())
+          // 🎊 Confetti on very first conversion ever
+          if (newCount === 1) fireConfetti()
         }
         img.src = dataUri
       }
@@ -259,14 +282,14 @@ export default function Home() {
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="relative w-9 h-9">
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 opacity-20 blur-md" />
-                <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              </div>
+              <a href="/" className="relative group">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 opacity-20 blur-md group-hover:opacity-40 transition-opacity" />
+                <img 
+                  src="/logo.png" 
+                  alt="img64 logo" 
+                  className="relative w-10 h-10 rounded-xl object-contain"
+                />
+              </a>
               <span className="text-xl font-bold gradient-text tracking-tight">img64</span>
               {isPro && <ProBadge />}
             </div>
@@ -437,7 +460,7 @@ export default function Home() {
               {conversionCount > 0 && (
                 <div className="text-center mb-6">
                   <span className="text-slate-500 text-sm">🎉 </span>
-                  <span className="font-bold gradient-text">{conversionCount.toLocaleString()}</span>
+                  <span className="font-bold gradient-text">{displayCount.toLocaleString()}</span>
                   <span className="text-slate-500 text-sm"> conversions on img64.dev</span>
                 </div>
               )}
@@ -661,13 +684,6 @@ export default function Home() {
             <a href="/terms" className="hover:text-violet-400 transition-colors">Terms</a>
             <a href="https://github.com/nutshot2000/-Image-to-Base64-Converter" target="_blank" rel="noopener" className="hover:text-violet-400 transition-colors">GitHub →</a>
           </div>
-          <a
-            href="https://ko-fi.com/nutshot2000"
-            target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#29abe0]/10 border border-[#29abe0]/20 text-[#29abe0] rounded-xl text-sm font-medium hover:bg-[#29abe0]/20 transition-all hover:-translate-y-0.5"
-          >
-            ☕ Buy me a coffee
-          </a>
           <p className="mt-5 text-xs text-slate-600">© 2026 img64.dev · All rights reserved</p>
         </footer>
       </div>
