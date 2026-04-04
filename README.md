@@ -4,6 +4,8 @@
 
 The fastest, most private way to convert images to Base64. No uploads, no limits, works offline.
 
+<!-- Last updated: 2026-04-04 - DNS and SEO improvements -->
+
 ![img64.dev Screenshot](public/og-image.png)
 
 ## ✨ Why img64?
